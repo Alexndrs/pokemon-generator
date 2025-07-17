@@ -1,3 +1,5 @@
+# file to execute from root with `python -m backend.data.collector` 
+
 import requests
 import json
 import os
@@ -7,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 class PokemonDataCollector:
-    def __init__(self, output_dir="pokemon_dataset"):
+    def __init__(self, output_dir="backend/data/pokemon_dataset"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.images_dir = self.output_dir / "images"

@@ -25,7 +25,8 @@ class SinusoidalTimeEmbedding(nn.Module):
         device = t.device
         emb = math.log(10000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, device=device) * -emb)
-        emb = t[:, None] * emb[None, :]  
+        # Fix: utiliser t.squeeze(-1) pour enlever la dimension supplémentaire
+        emb = t.squeeze(-1)[:, None] * emb[None, :]  
         emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=-1)
         return emb  
 
@@ -50,22 +51,38 @@ class ConvBlock(nn.Module):
 
         self.time_emb_proj = nn.Linear(time_emb_dim, out_channels)
 
+        # Add residual connection if dimensions don't match
+        if in_channels != out_channels:
+            self.residual_conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        else:
+            self.residual_conv = nn.Identity()
+
     def forward(self, x, t_emb):
         '''
         Forward pass through the convolutional block.
         Args:
-        x (Tensor): Input tensor.
-        time_emb (Tensor): Time embedding tensor.
+        x (Tensor): Input tensor. (B, C, H, W)
+        t_emb (Tensor): Time embedding tensor. (B, time_emb_dim)
         Returns:
         Tensor: Output tensor after passing through the block.
         '''
-        # Temporal embedding projection (B, C) -> (B, C, 1, 1)
+        # Store residual connection
+        residual = self.residual_conv(x)
+        
+        # First conv block
+        h = self.conv1(x)
+        
+        # Add time embedding (B, C) -> (B, C, 1, 1)
         time_emb = self.time_emb_proj(t_emb).unsqueeze(-1).unsqueeze(-1)
-        x = self.conv1(x) + time_emb
-        x = self.act1(self.gn1(x))
-        x = self.conv2(x) 
-        x = self.act2(self.gn2(x))
-        return x
+        h = h + time_emb
+        h = self.act1(self.gn1(h))
+        
+        # Second conv block
+        h = self.conv2(h)
+        h = self.act2(self.gn2(h))
+        
+        # Add residual connection
+        return h + residual
 
 
 class UNet(nn.Module):
@@ -121,14 +138,13 @@ class UNet(nn.Module):
         bn = self.bottleneck(p2, t_emb)  # (B, 256, 32, 32)
 
         up1 = self.upsample(bn)            # (B, 256, 64, 64)
-        up1 = torch.cat([up1, d2], dim=1)  # skip connection (B, 256, 32, 32)
+        up1 = torch.cat([up1, d2], dim=1)  # skip connection (B, 512, 64, 64)
         up1 = self.up1(up1, t_emb)       # (B, 128, 64, 64)
 
-
         up2 = self.upsample(up1)         # (B, 128, 128, 128)
-        up2 = torch.cat([up2, d1], dim=1)
+        up2 = torch.cat([up2, d1], dim=1) # skip connection (B, 256, 128, 128)
         up2 = self.up2(up2, t_emb)       # (B, 64, 128, 128)
 
-        out = self.final_conv(up2)       # (B, 3, 128, 128)
+        out = self.final_conv(up2)       # (B, out_channels, 128, 128)
 
         return out
