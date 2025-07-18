@@ -5,7 +5,7 @@
 [![LightWeight](https://img.shields.io/badge/Size-41Ko-brightgreen?logo=feather&style=flat-square)](https://github.com)
 [![Pokémon](https://img.shields.io/badge/Pokémon-API-FFCB05?logo=pokemon&logoColor=white&style=flat-square)](https://pokeapi.co)
 
-Current results for ~150 Epoch on 1200 images
+Current results for ~260 Epoch on 1200 images
 <p align="center">
   <img src="./backend/samples/generated_samples.png" width="100%" alt="Chat demo" />
 </p>
