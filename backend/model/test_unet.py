@@ -113,7 +113,7 @@ class TestUNet(unittest.TestCase):
         model.train()  # Mode training
         
         out = model(x, t)
-        loss = out.sum()
+        loss = out.sum() # Simple loss for testing purpose
         loss.backward()
         
         # Verify that gradients are computed
