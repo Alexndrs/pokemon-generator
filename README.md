@@ -6,10 +6,8 @@
 [![Pokémon](https://img.shields.io/badge/Pokémon-API-FFCB05?logo=pokemon&logoColor=white&style=flat-square)](https://pokeapi.co)
 
 Current results for ~260 Epoch on 1200 images
-<p align="center">
-  <img src="./backend/samples/generated_samples.png" width="100%" alt="Chat demo" />
-</p>
-<p align="center">
-  <img src="./backend/video_samples/diffusion_process.gif" width="100%" alt="Chat demo" />
+<p align="center" style="display: flex; justify-content: center; flex-wrap: wrap;">
+  <img src="./backend/samples/generated_samples.png" width="80%" alt="Chat demo" />
+  <img src="./backend/video_samples/diffusion_process.gif" width="20%" alt="Chat demo" />
 </p>
 
