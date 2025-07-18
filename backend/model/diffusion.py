@@ -29,10 +29,10 @@ class GaussianDiffusion:
         self.timesteps = timesteps
 
         # Linear schedule
-        self.betas = torch.linspace(beta_start, beta_end, timesteps).to(device)  # (T,)
+        # self.betas = torch.linspace(beta_start, beta_end, timesteps).to(device)  # (T,)
 
         # Cosine schedule
-        # self.betas = self._get_cosine_schedule(timesteps).to(device)
+        self.betas = self._get_cosine_schedule(timesteps).to(device)
 
         self.alphas = 1. - self.betas                             # (T,)
         self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)  # (T,)

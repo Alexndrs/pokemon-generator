@@ -11,7 +11,8 @@ def generate_samples(model_ckpt, output_dir="./samples", num_images=4):
 
     # === Load model ===
     model = UNet(in_channels=3, out_channels=3, time_emb_dim=256).to(device)
-    model.load_state_dict(torch.load(model_ckpt, map_location=device))
+    checkpoint = torch.load(model_ckpt, map_location=device, weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
     # === Diffusion interface ===
@@ -28,6 +29,6 @@ def generate_samples(model_ckpt, output_dir="./samples", num_images=4):
 
 if __name__ == "__main__":
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    ckpt_path = os.path.join(ROOT_DIR, "checkpoints", "model_epoch_9.pt")
+    ckpt_path = os.path.join(ROOT_DIR, "checkpoints", "last_checkpoint.pt")
     sample_output_dir = os.path.join(ROOT_DIR, "samples")
     generate_samples(model_ckpt=ckpt_path, output_dir=sample_output_dir)

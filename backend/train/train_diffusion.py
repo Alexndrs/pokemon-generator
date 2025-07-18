@@ -17,7 +17,7 @@ def train():
     image_size = 128
     batch_size = 16
     lr = 1e-4
-    epochs = 30 # Total number of epochs to train for
+    epochs = 500 # Total number of epochs to train for
 
     # Save path for checkpoints
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
