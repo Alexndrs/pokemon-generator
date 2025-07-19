@@ -13,9 +13,9 @@ Current results for ~1200 Epoch on 1200 images
   <img src="./backend/video_samples/diffusion_process.gif" width="19%" alt="Chat demo" />
 </p>
 
-> On linear scheduler 
+<!-- > On linear scheduler 
 <p align="center" style="display: flex; justify-content: center; width:95%">
   <img src="./backend/samples/generated_samples_linear.png" width="76%" alt="Chat demo" />
   <img src="./backend/video_samples/diffusion_process_linear.gif" width="19%" alt="Chat demo" />
 </p>
-
+ -->
