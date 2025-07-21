@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-# import torch.cuda.amp as amp # For mixed precision training -> improving training
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -43,8 +43,7 @@ def train():
     diffusion = GaussianDiffusion(model=model, device=device, H=image_size, W=image_size)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    # Initialize scaler for mixed precision if uncommented
-    # scaler = torch.cuda.amp.GradScaler()
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, verbose=True, min_lr=1e-7)
 
     # --- Check for existing checkpoint ---
     start_epoch = 0
@@ -54,8 +53,8 @@ def train():
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch'] + 1
-        # if 'scaler_state_dict' in checkpoint and 'scaler' in locals():
-        #     scaler.load_state_dict(checkpoint['scaler_state_dict'])
+        if 'scheduler_state_dict' in checkpoint:
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         print(f"Resuming training from epoch {start_epoch}")
     else:
         print("No checkpoint found, starting training from scratch.")
@@ -82,6 +81,8 @@ def train():
         avg_loss = epoch_loss / len(dataloader)
         print(f"Epoch {epoch+1}: Loss = {avg_loss:.4f}")
 
+        scheduler.step(avg_loss)
+
         # Save checkpoint after each epoch
         # You can adjust the frequency of saving, e.g., every 5 epochs
         # or save only the best model based on validation loss if you add validation
@@ -91,6 +92,7 @@ def train():
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': avg_loss,
+            'scheduler_state_dict': scheduler.state_dict(),
         }
         # if 'scaler' in locals():
         #     checkpoint_data['scaler_state_dict'] = scaler.state_dict()
