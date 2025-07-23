@@ -122,13 +122,14 @@ class GaussianDiffusion:
 
         return (x_t - sqrt_one_minus_ab * eps) / sqrt_ab
 
-    def p_sample(self, x_t, t):
+    def p_sample(self, x_t, t, cond=None, guidance_scale=2.0):
         '''
         Perform one reverse sampling step: p(x_{t-1} | x_t)
 
         Args:
             x_t (Tensor): Image at step t (B, C, H, W)
             t (Tensor): Time steps (B,) or (B, 1)
+            Cond (optional): Conditional input (e.g., class labels, type, color, etc...)
 
         Returns:
             x_{t-1} (Tensor): Image at step t-1 (B, C, H, W)
@@ -137,8 +138,15 @@ class GaussianDiffusion:
         if t.dim() == 2:
             t = t.squeeze(-1)
 
+        if cond is not None and guidance_scale > 1.0:
+            # Apply classifier-free guidance
+
+            x_t
+
+
+
         # Predict noise using the model
-        eps = self.model(x_t, t.unsqueeze(-1))  # output: (B, C, H, W)
+        eps = self.model(x_t, t.unsqueeze(-1), cond=cond)  # output: (B, C, H, W)
         # eps = self.model(x_t, t)  # output: (B, C, H, W)
 
         pred_x0 = self.predict_x0_from_eps(x_t, t, eps)
@@ -162,13 +170,14 @@ class GaussianDiffusion:
 
 
     @torch.no_grad()
-    def p_sample_loop(self, shape, save_intermediate_steps=False, save_dir=None, save_interval=10):
+    def p_sample_loop(self, shape, cond=None, save_intermediate_steps=False, save_dir=None, save_interval=10):
         '''
         Full reverse loop (sampling): from x_T ~ N(0,I) to x_0.
         Can optionally save intermediate steps for visualization.
 
         Args:
             shape: (B, C, H, W)
+            cond: optional conditional input (e.g., class labels, type, color, etc...)
             save_intermediate_steps (bool): Whether to save intermediate images.
             save_dir (str, optional): Directory to save images if save_intermediate_steps is True.
                                       Defaults to a 'sampling_frames' folder.
@@ -193,7 +202,7 @@ class GaussianDiffusion:
 
         for t_idx in reversed(range(self.timesteps)): # Iterate through timesteps in reverse
             t_batch = torch.full((shape[0],), t_idx, device=self.device, dtype=torch.long)
-            img = self.p_sample(img, t_batch)
+            img = self.p_sample(img, t_batch, cond=cond)
 
             # Save intermediate image
             if save_intermediate_steps and (t_idx % save_interval == 0 or t_idx == 0):
@@ -211,7 +220,7 @@ class GaussianDiffusion:
 
 
     @torch.no_grad()
-    def sample(self, batch_size, channels=3, save_intermediate_steps=False, save_dir=None, save_interval=10):
+    def sample(self, batch_size, channels=3, cond=None, save_intermediate_steps=False, save_dir=None, save_interval=10):
         '''
         Public method to generate samples.
 
@@ -219,21 +228,22 @@ class GaussianDiffusion:
             Tensor: (B, C, H, W)
         '''
         shape = (batch_size, channels, self.H, self.W)
-        return self.p_sample_loop(shape, save_intermediate_steps, save_dir, save_interval)
+        return self.p_sample_loop(shape, cond=cond, save_intermediate_steps=save_intermediate_steps, save_dir=save_dir, save_interval=save_interval)
 
 
-    def loss(self, x_0, t):
+    def loss(self, x_0, t, cond=None):
         '''
         Compute training loss: L = MSE(eps_pred, eps)
 
         Args:
             x_0: clean image (B, C, H, W)
             t: timestep (B,)
+            cond: optional conditional input (e.g., class labels, type, color, etc...)
 
         Returns:
             scalar loss
         '''
         x_t, noise = self.q_sample(x_0, t)
-        eps_pred = self.model(x_t, t.unsqueeze(-1))  # (B, C, H, W)
+        eps_pred = self.model(x_t, t.unsqueeze(-1), cond=cond)  # (B, C, H, W)
         # eps_pred = self.model(x_t, t)  # (B, C, H, W)
         return nn.functional.mse_loss(eps_pred, noise)

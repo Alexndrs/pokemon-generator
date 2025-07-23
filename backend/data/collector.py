@@ -263,7 +263,7 @@ if __name__ == "__main__":
     collector = PokemonDataCollector()
     
     # Collecte pokemon
-    collector.collect_pokemon_data(limit=1)
+    collector.collect_pokemon_data(limit=2000)
     
     # Generate simple descriptions
     collector.create_simple_descriptions()

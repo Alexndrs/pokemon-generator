@@ -32,13 +32,14 @@ class SinusoidalTimeEmbedding(nn.Module):
 
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, time_emb_dim):
+    def __init__(self, in_channels, out_channels, time_emb_dim, cond_dim):
         '''
         A convolutional block with two convolutional layers, group normalization, and GELU activation.
         Args:
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
         time_emb_dim (int): Dimension of the time embedding.
+        cond_dim (int): Dimension of the conditional input.
         '''
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
@@ -50,6 +51,7 @@ class ConvBlock(nn.Module):
         self.act2 = nn.GELU()
 
         self.time_emb_proj = nn.Linear(time_emb_dim, out_channels)
+        self.cond_emb_proj = nn.Linear(cond_dim, out_channels)
 
         # Add residual connection if dimensions don't match
         if in_channels != out_channels:
@@ -57,7 +59,7 @@ class ConvBlock(nn.Module):
         else:
             self.residual_conv = nn.Identity()
 
-    def forward(self, x, t_emb):
+    def forward(self, x, t_emb, cond_emb):
         '''
         Forward pass through the convolutional block.
         Args:
@@ -72,9 +74,10 @@ class ConvBlock(nn.Module):
         # First conv block
         h = self.conv1(x)
         
-        # Add time embedding (B, C) -> (B, C, 1, 1)
+        # Add time embedding (B, C) -> (B, C, 1, 1) and conditionnal embedding
         time_emb = self.time_emb_proj(t_emb).unsqueeze(-1).unsqueeze(-1)
-        h = h + time_emb
+        cond_emb = self.cond_emb_proj(cond_emb).unsqueeze(-1).unsqueeze(-1)
+        h = h + time_emb + cond_emb
         h = self.act1(self.gn1(h))
         
         # Second conv block
@@ -86,13 +89,14 @@ class ConvBlock(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, in_channels=3, out_channels=3, time_emb_dim=256):
+    def __init__(self, in_channels=3, out_channels=3, time_emb_dim=256, cond_dim=34):
         '''
         A U-Net architecture for image processing tasks.
         Args:
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
         time_emb_dim (int): Dimension of the time embedding.
+        cond_dim (int): Dimension of the conditional input
         '''
         super().__init__()
         self.time_embedding = SinusoidalTimeEmbedding(time_emb_dim)
@@ -101,23 +105,22 @@ class UNet(nn.Module):
         self.init_conv = nn.Conv2d(in_channels, 64, kernel_size=3, padding=1)
 
         # Downsampling layers
-        self.down1 = ConvBlock(64, 128, time_emb_dim)
-        self.down2 = ConvBlock(128, 256, time_emb_dim)
+        self.down1 = ConvBlock(64, 128, time_emb_dim, cond_dim)
+        self.down2 = ConvBlock(128, 256, time_emb_dim, cond_dim)
         self.pool = nn.MaxPool2d(2)
 
         # Bottleneck
-        self.bottleneck = ConvBlock(256, 256, time_emb_dim)
+        self.bottleneck = ConvBlock(256, 256, time_emb_dim, cond_dim)
 
         # Upsampling layers
-        self.up1 = ConvBlock(256 + 256, 128, time_emb_dim)
-        self.up2 = ConvBlock(128 + 128, 64, time_emb_dim)
-
+        self.up1 = ConvBlock(256 + 256, 128, time_emb_dim, cond_dim)
+        self.up2 = ConvBlock(128 + 128, 64, time_emb_dim, cond_dim)
         self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
 
         # Final conv
         self.final_conv = nn.Conv2d(64, out_channels, kernel_size=1)
     
-    def forward(self, x, t):
+    def forward(self, x, t, cond=34):
         '''
         Forward pass through the U-Net.
         Args:
@@ -129,21 +132,21 @@ class UNet(nn.Module):
         t_emb = self.time_embedding(t) # (B, time_emb_dim)
 
         x1 = self.init_conv(x)          # (B, 64, 128, 128)
-        d1 = self.down1(x1, t_emb)      # (B, 128, 128, 128)
+        d1 = self.down1(x1, t_emb, cond)      # (B, 128, 128, 128)
         p1 = self.pool(d1)              # (B, 128, 64, 64)
 
-        d2 = self.down2(p1, t_emb)      # (B, 256, 64, 64)
+        d2 = self.down2(p1, t_emb, cond)      # (B, 256, 64, 64)
         p2 = self.pool(d2)              # (B, 256, 32, 32)
 
-        bn = self.bottleneck(p2, t_emb)  # (B, 256, 32, 32)
+        bn = self.bottleneck(p2, t_emb, cond)  # (B, 256, 32, 32)
 
         up1 = self.upsample(bn)            # (B, 256, 64, 64)
         up1 = torch.cat([up1, d2], dim=1)  # skip connection (B, 512, 64, 64)
-        up1 = self.up1(up1, t_emb)       # (B, 128, 64, 64)
+        up1 = self.up1(up1, t_emb, cond)       # (B, 128, 64, 64)
 
         up2 = self.upsample(up1)         # (B, 128, 128, 128)
         up2 = torch.cat([up2, d1], dim=1) # skip connection (B, 256, 128, 128)
-        up2 = self.up2(up2, t_emb)       # (B, 64, 128, 128)
+        up2 = self.up2(up2, t_emb, cond)       # (B, 64, 128, 128)
 
         out = self.final_conv(up2)       # (B, out_channels, 128, 128)
 

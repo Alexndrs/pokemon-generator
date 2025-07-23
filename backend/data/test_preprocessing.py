@@ -19,7 +19,7 @@ print("Chemin CSV utilisé :", csv_path)
 dataset = PokemonDataset(
     csv_path=csv_path,
     image_size=128,
-    image_type_filter="official",  # or None to include all images
+    is_sprite=None,
     use_metadata=False,
     use_descriptions=False,
     # metadata_path=meta_path,
@@ -29,14 +29,11 @@ dataset = PokemonDataset(
 
 sample = dataset[0]
 print("Pokemon name:", sample["name"])
-assert sample is not None, "The sample should not be None"
-assert sample["image"].shape == (3, 128, 128), "The image should have shape (3, 128, 128)"
-# Show image with matplotlib 
 plt.imshow(sample["image"].permute(1, 2, 0))  # (C, H, W) to (H, W, C)
 plt.show()
-
 
 # Testing DataLoader
 dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 batch = next(iter(dataloader))
+print(batch["encoded"].shape)
 assert batch["image"].shape == (4, 3, 128, 128), "Batch image shape should be (4, 3, 128, 128)"
