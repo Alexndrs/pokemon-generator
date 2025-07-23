@@ -37,3 +37,7 @@ dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 batch = next(iter(dataloader))
 print(batch["encoded"].shape)
 assert batch["image"].shape == (4, 3, 128, 128), "Batch image shape should be (4, 3, 128, 128)"
+
+
+empty_condition_vector = dataset._encode_empty()
+print("Empty condition vector shape:", empty_condition_vector.shape)

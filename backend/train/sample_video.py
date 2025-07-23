@@ -5,6 +5,7 @@ import os
 import numpy as np
 import glob
 from PIL import Image
+from backend.data.preprocessing import PokemonDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -49,22 +50,40 @@ def cleanup_frames(frames_dir):
     
     print(f"Nettoyage terminé : {len(frame_files)} images supprimées")
 
-def generate_and_visualize(model_ckpt, sample_vid_dir):
+def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None):
+
+    ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    dataset = PokemonDataset(
+        csv_path=os.path.join(ROOT_DIR, "data", "pokemon_dataset", "dataset.csv"),
+        image_size=128,
+        is_sprite=None,
+        use_metadata=False,
+        use_descriptions=False,
+    )
+
+    empty_condition_vector = dataset._encode_empty().to(device)
+
+    if cond is None:
+        # If no condition is provided, use an empty condition vector
+        cond = empty_condition_vector
+
+
     image_size = 128
     batch_size = 1
 
-    model = UNet().to(device)
+    model = UNet(empty_condition_vector=empty_condition_vector).to(device)
     checkpoint = torch.load(model_ckpt, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
 
-    diffusion = GaussianDiffusion(model=model, device=device, H=image_size, W=image_size)
+    diffusion = GaussianDiffusion(model=model, device=device,empty_condition_vector=empty_condition_vector, H=image_size, W=image_size)
 
     print("Generating sample and saving intermediate steps...")
     # Generate a single image and save intermediate steps
     generated_image = diffusion.sample(
         batch_size=batch_size,
         channels=3,
+        cond=cond,
         save_intermediate_steps=True,
         save_dir=sample_vid_dir,
         save_interval=9 
@@ -86,4 +105,14 @@ if __name__ == "__main__":
     sample_vid_dir = os.path.join(ROOT_DIR, "video_samples")
     os.makedirs(sample_vid_dir, exist_ok=True)
     print("ckpt_path :", ckpt_path, "sample_vid_dir :", sample_vid_dir)
-    generate_and_visualize(ckpt_path,sample_vid_dir)
+
+    dataset = PokemonDataset(
+        csv_path=os.path.join(ROOT_DIR, "data", "pokemon_dataset", "dataset.csv"),
+        image_size=128,
+        is_sprite=None,
+        use_metadata=False,
+        use_descriptions=False,
+    )
+    cond = dataset.encode_user_request(color="red", is_sprite=False).to(device)
+
+    generate_and_visualize(ckpt_path,sample_vid_dir, cond=cond)

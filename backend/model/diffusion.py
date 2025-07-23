@@ -10,13 +10,14 @@ import math
 
 
 class GaussianDiffusion:
-    def __init__(self, model, device, timesteps=1000, beta_start=1e-4, beta_end=0.02, H=128, W=128):
+    def __init__(self, model, device, empty_condition_vector, timesteps=1000, beta_start=1e-4, beta_end=0.02, H=128, W=128):
         '''
         Implements the DDPM diffusion process scheduler and reverse sampling.
 
         Args:
             model (nn.Module): The noise prediction model (e.g., U-Net).
             device (torch.device): Device to run computations on.
+            empty_condition_vector (torch.Tensor) : the vector to be used when no condition is provided (for classifier-free guidance)
             timesteps (int): Total number of diffusion steps T.
             beta_start (float): Initial beta value.
             beta_end (float): Final beta value.
@@ -27,6 +28,8 @@ class GaussianDiffusion:
         self.model = model
         self.device = device
         self.timesteps = timesteps
+        self.empty_condition_vector = empty_condition_vector
+
 
         # Linear schedule
         self.betas = torch.linspace(beta_start, beta_end, timesteps).to(device)  # (T,)
@@ -122,14 +125,15 @@ class GaussianDiffusion:
 
         return (x_t - sqrt_one_minus_ab * eps) / sqrt_ab
 
-    def p_sample(self, x_t, t, cond=None, guidance_scale=2.0):
+    def p_sample(self, x_t, t, cond, guidance_scale=2.0):
         '''
         Perform one reverse sampling step: p(x_{t-1} | x_t)
 
         Args:
             x_t (Tensor): Image at step t (B, C, H, W)
             t (Tensor): Time steps (B,) or (B, 1)
-            Cond (optional): Conditional input (e.g., class labels, type, color, etc...)
+            Cond : Conditional input (e.g., class labels, type, color, etc...)
+            guidance_scale (float): Scale for classifier-free guidance. Default is 2.0. (1.0 or less means no guidance e.g : using the model with condition cond and not taking into account the result with empty_condition_vector)
 
         Returns:
             x_{t-1} (Tensor): Image at step t-1 (B, C, H, W)
@@ -138,16 +142,30 @@ class GaussianDiffusion:
         if t.dim() == 2:
             t = t.squeeze(-1)
 
-        if cond is not None and guidance_scale > 1.0:
+        if guidance_scale > 1.0:
             # Apply classifier-free guidance
 
-            x_t
+            x_t_doubled = torch.cat([x_t, x_t], dim=0)   #concat so we can pass x_t with and without condition in one forward pass
+            t_doubled = torch.cat([t, t], dim=0)
+            if cond.dim() == 1:
+                batch_size = 1
+                cond = cond.unsqueeze(0)
+            else:
+                batch_size = cond.shape[0]
 
+            if self.empty_condition_vector is None:
+                raise ValueError("empty_condition_vector should be provided for classifier-free guidance.")
+            
+            uncond = self.empty_condition_vector.unsqueeze(0).repeat(batch_size, 1).to(cond.device)
+            cond_doubled = torch.cat([uncond, cond], dim=0)
 
+            eps_doubled = self.model(x_t_doubled, t_doubled.unsqueeze(-1), cond=cond_doubled) # output: (2B, C, H, W)
+            eps_uncond, eps_cond = eps_doubled.chunk(2, dim=0)
 
-        # Predict noise using the model
-        eps = self.model(x_t, t.unsqueeze(-1), cond=cond)  # output: (B, C, H, W)
-        # eps = self.model(x_t, t)  # output: (B, C, H, W)
+            # Guidance formula :
+            eps = eps_uncond + guidance_scale * (eps_cond - eps_uncond) #output: (B, C, H, W)
+        else:
+            eps = self.model(x_t, t.unsqueeze(-1), cond=cond) # output: (B, C, H, W)
 
         pred_x0 = self.predict_x0_from_eps(x_t, t, eps)
         pred_x0 = torch.clamp(pred_x0, -1., 1.)
@@ -170,14 +188,15 @@ class GaussianDiffusion:
 
 
     @torch.no_grad()
-    def p_sample_loop(self, shape, cond=None, save_intermediate_steps=False, save_dir=None, save_interval=10):
+    def p_sample_loop(self, shape, cond, guidance_scale=2.0, save_intermediate_steps=False, save_dir=None, save_interval=10):
         '''
         Full reverse loop (sampling): from x_T ~ N(0,I) to x_0.
         Can optionally save intermediate steps for visualization.
 
         Args:
             shape: (B, C, H, W)
-            cond: optional conditional input (e.g., class labels, type, color, etc...)
+            cond: conditional input (e.g., class labels, type, color, etc...)
+            guidance_scale (float): CFG guidance scale
             save_intermediate_steps (bool): Whether to save intermediate images.
             save_dir (str, optional): Directory to save images if save_intermediate_steps is True.
                                       Defaults to a 'sampling_frames' folder.
@@ -202,7 +221,7 @@ class GaussianDiffusion:
 
         for t_idx in reversed(range(self.timesteps)): # Iterate through timesteps in reverse
             t_batch = torch.full((shape[0],), t_idx, device=self.device, dtype=torch.long)
-            img = self.p_sample(img, t_batch, cond=cond)
+            img = self.p_sample(img, t_batch, cond=cond, guidance_scale=guidance_scale)
 
             # Save intermediate image
             if save_intermediate_steps and (t_idx % save_interval == 0 or t_idx == 0):
@@ -231,19 +250,21 @@ class GaussianDiffusion:
         return self.p_sample_loop(shape, cond=cond, save_intermediate_steps=save_intermediate_steps, save_dir=save_dir, save_interval=save_interval)
 
 
-    def loss(self, x_0, t, cond=None):
+    def loss(self, x_0, t, cond):
         '''
         Compute training loss: L = MSE(eps_pred, eps)
+
+        Note: Conditioning dropout is handled in the dataset preprocessing,
+        so cond may already contain dropped/empty conditions.
 
         Args:
             x_0: clean image (B, C, H, W)
             t: timestep (B,)
-            cond: optional conditional input (e.g., class labels, type, color, etc...)
+            cond: optional conditional input (e.g., class labels, type, color, etc..., or might be empty_condition_vector)
 
         Returns:
             scalar loss
         '''
         x_t, noise = self.q_sample(x_0, t)
-        eps_pred = self.model(x_t, t.unsqueeze(-1), cond=cond)  # (B, C, H, W)
-        # eps_pred = self.model(x_t, t)  # (B, C, H, W)
+        eps_pred = self.model(x_t, t.unsqueeze(-1), cond=cond)
         return nn.functional.mse_loss(eps_pred, noise)

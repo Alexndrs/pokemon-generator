@@ -32,15 +32,19 @@ def train():
     dataset = PokemonDataset(
         csv_path=csv_path,
         image_size=image_size,
-        image_type_filter="official",  
+        is_sprite=None,
         use_metadata=False,
-        use_descriptions=False
+        use_descriptions=False,
     )
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
 
+    print("Dataset loaded with", len(dataset), "samples.")
+
+    empty_condition_vector = dataset._encode_empty().to(device)
+
     # === Model & Diffusion ===
-    model = UNet().to(device)
-    diffusion = GaussianDiffusion(model=model, device=device, H=image_size, W=image_size)
+    model = UNet(empty_condition_vector=empty_condition_vector).to(device)
+    diffusion = GaussianDiffusion(model=model, device=device,empty_condition_vector=empty_condition_vector,H=image_size, W=image_size)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, verbose=True, min_lr=1e-7)
@@ -67,10 +71,11 @@ def train():
 
         for batch in tqdm(dataloader, desc=f"[Epoch {epoch+1}/{epochs}]"):
             x_0 = batch["image"].to(device)  # (B, 3, H, W)
+            x_0_cond = batch["encoded"].to(device)
             t = torch.randint(0, diffusion.timesteps, (x_0.size(0),), device=device)
 
             optimizer.zero_grad()
-            loss = diffusion.loss(x_0, t)
+            loss = diffusion.loss(x_0, t, cond=x_0_cond)
 
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
