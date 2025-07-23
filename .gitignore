@@ -1,4 +1,5 @@
 **/.venv
 **/pokemon_dataset/**
+**/pokemon_dataset_prec/**
 **/__pycache__
 **/checkpoints

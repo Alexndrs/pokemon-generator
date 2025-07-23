@@ -57,21 +57,27 @@ class PokemonDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict:
         row = self.data.iloc[idx]
         image_path = row["image_path"].replace("\\", os.sep)
-
         image = Image.open(image_path).convert("RGB")
         image = self.transform(image)
 
         sample = {
             "image": image,
-            "name": row["name"]
+            "name": row["name"],
+            "color": row.get("color", "unknown"),
+            "generation_id": row.get("generation_id", 0),
+            "primary_type": row.get("primary_type", "unknown"),
+            "is_legendary": bool(row.get("is_legendary", False)),
+            "is_mythical": bool(row.get("is_mythical", False)),
+            "height": row.get("height", 0.0),
+            "weight": row.get("weight", 0.0),
+            "is_sprite": bool(row.get("is_sprite", True))
         }
 
-        # Optionally add metadata
         if self.use_metadata:
             sample["metadata"] = self.metadata.get(row["name"], {})
 
-        # Optionally add description
         if self.use_descriptions:
             sample["description"] = self.descriptions.get(row["name"], {}).get("simple_description", "")
 
         return sample
+
