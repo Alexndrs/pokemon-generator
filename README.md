@@ -20,6 +20,10 @@ ___
 ## Conditional generation with free guidance
 Current results for ~345 Epoch on 5883 images with the conditionnal DDPM (conditionnal encoding of dimension 42) 
 
+>weight : [model on google drive](https://drive.google.com/file/d/131QypAm5bKnQFkletqcY4LHWCdWo8TLS/view?usp=sharing)
+
+
+
 > On cosine scheduler
 > cond : color="red", is_sprite=False
 <p align="center" style="display: flex; justify-content: center; width:95%">
