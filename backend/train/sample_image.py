@@ -49,7 +49,7 @@ def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4
     grid = vutils.make_grid(images, nrow=4, normalize=True, value_range=(-1, 1))
     output_path = os.path.join(output_dir, "generated_samples" + (suffix if suffix else "") + ".png")
     vutils.save_image(grid, output_path)
-    print(f"Saved samples to {os.path.join(output_dir, 'generated_samples.png')}")
+    print(f"Saved samples to {output_path}")
 
 if __name__ == "__main__":
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -64,8 +64,9 @@ if __name__ == "__main__":
         use_descriptions=False,
     )
     conditions = {
-        "color": "blue",
-        "is_sprite": True,
+        "is_sprite": False,
+        "primary_type" : "leaf",
+        "is_legendary" : True
     }
 
 

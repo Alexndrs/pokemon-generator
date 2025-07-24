@@ -18,7 +18,7 @@ Current results for ~1750 Epoch on 1200 images with the unconditional DDPM
 
 ___
 ## Conditional generation with free guidance
-Current results for ~145 Epoch on 5883 images with the conditionnal DDPM (conditionnal encoding of dimension 42) 
+Current results for ~345 Epoch on 5883 images with the conditionnal DDPM (conditionnal encoding of dimension 42) 
 
 > On cosine scheduler
 > cond : color="red", is_sprite=False
