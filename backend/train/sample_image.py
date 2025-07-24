@@ -7,7 +7,7 @@ from backend.data.preprocessing import PokemonDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4):
+def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4, suffix=None):
     os.makedirs(output_dir, exist_ok=True)
 
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -47,7 +47,8 @@ def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4
 
     # === Save grid ===
     grid = vutils.make_grid(images, nrow=4, normalize=True, value_range=(-1, 1))
-    vutils.save_image(grid, os.path.join(output_dir, "generated_samples.png"))
+    output_path = os.path.join(output_dir, "generated_samples" + (suffix if suffix else "") + ".png")
+    vutils.save_image(grid, output_path)
     print(f"Saved samples to {os.path.join(output_dir, 'generated_samples.png')}")
 
 if __name__ == "__main__":
@@ -62,6 +63,13 @@ if __name__ == "__main__":
         use_metadata=False,
         use_descriptions=False,
     )
-    cond = dataset.encode_user_request(color="red", is_sprite=True).to(device)
+    conditions = {
+        "color": "blue",
+        "is_sprite": True
+    }
 
-    generate_samples(model_ckpt=ckpt_path, output_dir=sample_output_dir, cond=cond)
+
+    cond = dataset.encode_user_request(**conditions).to(device)
+    suffix = dataset.get_request_suffix(**conditions)
+
+    generate_samples(model_ckpt=ckpt_path, output_dir=sample_output_dir, cond=cond, num_images=4, suffix=suffix)

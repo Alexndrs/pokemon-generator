@@ -277,6 +277,49 @@ class PokemonDataset(Dataset):
         
         return encoding
     
+    
+    def get_request_suffix(
+        self,
+        primary_type: Optional[str] = None,
+        color: Optional[str] = None,
+        height: Optional[float] = None,
+        weight: Optional[float] = None,
+        is_legendary: Optional[bool] = None,
+        is_mythical: Optional[bool] = None,
+        generation_id: Optional[int] = None,
+        is_sprite: Optional[bool] = None
+    ) -> str:
+        """
+        Generate a suffix string based on the user request parameters
+        """
+        suffix_parts = []
+        
+        if color is not None:
+            suffix_parts.append(f"{color}")
+        
+        if primary_type is not None:
+            suffix_parts.append(f"{primary_type}")
+            
+        if is_sprite is not None:
+            suffix_parts.append("sprite" if is_sprite else "official")
+            
+        if is_legendary is not None and is_legendary:
+            suffix_parts.append("legendary")
+            
+        if is_mythical is not None and is_mythical:
+            suffix_parts.append("mythical")
+            
+        if generation_id is not None:
+            suffix_parts.append(f"gen{generation_id}")
+            
+        if height is not None:
+            suffix_parts.append(f"h{height:.1f}")
+            
+        if weight is not None:
+            suffix_parts.append(f"w{weight:.1f}")
+        
+        return "_" + "_".join(suffix_parts) if suffix_parts else ""
+    
     def get_condition_size(self) -> int:
         '''return conditional vector size'''
         return len(self.all_types) + len(self.all_colors) + 6 + 8  # +6 for other features, +8 for condition mask

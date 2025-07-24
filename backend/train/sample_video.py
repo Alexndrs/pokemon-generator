@@ -50,7 +50,7 @@ def cleanup_frames(frames_dir):
     
     print(f"Nettoyage terminé : {len(frame_files)} images supprimées")
 
-def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None):
+def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None, suffix=None):
 
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     dataset = PokemonDataset(
@@ -93,7 +93,7 @@ def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None):
 
     # Now, you'll use FFmpeg to create a video from these frames.
     # FFmpeg command will be run from the terminal after this script finishes.
-    video_path = os.path.join(sample_vid_dir, "diffusion_process.gif")
+    video_path = os.path.join(sample_vid_dir, "diffusion_process" + (suffix if suffix else "") + ".gif")
     create_gif_from_frames(sample_vid_dir, video_path, fps=17)
     
     # Supprime les images PNG après création de la vidéo
@@ -102,9 +102,6 @@ def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None):
 if __name__ == "__main__":
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     ckpt_path = os.path.join(ROOT_DIR, "checkpoints", "last_checkpoint.pt")
-    sample_vid_dir = os.path.join(ROOT_DIR, "video_samples")
-    os.makedirs(sample_vid_dir, exist_ok=True)
-    print("ckpt_path :", ckpt_path, "sample_vid_dir :", sample_vid_dir)
 
     dataset = PokemonDataset(
         csv_path=os.path.join(ROOT_DIR, "data", "pokemon_dataset", "dataset.csv"),
@@ -113,6 +110,19 @@ if __name__ == "__main__":
         use_metadata=False,
         use_descriptions=False,
     )
-    cond = dataset.encode_user_request(color="red", is_sprite=False).to(device)
 
-    generate_and_visualize(ckpt_path,sample_vid_dir, cond=cond)
+    conditions = {
+        "color": "blue",
+        "is_sprite": True
+    }
+
+
+    cond = dataset.encode_user_request(**conditions).to(device)
+    suffix = dataset.get_request_suffix(**conditions)
+
+    sample_vid_dir = os.path.join(ROOT_DIR, "video_samples")
+
+
+    os.makedirs(sample_vid_dir, exist_ok=True)
+    print("ckpt_path :", ckpt_path, "sample_vid_dir :", sample_vid_dir)
+    generate_and_visualize(ckpt_path,sample_vid_dir, cond=cond, suffix=suffix)

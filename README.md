@@ -16,12 +16,19 @@ Current results for ~1750 Epoch on 1200 images with the unconditional DDPM
 </p>
 
 
-___
+___v
 ## Conditional generation with free guidance
-Current results for ~4 Epoch on 5883 images with the conditionnal DDPM (conditionnal encoding of dimension 42) 
+Current results for ~145 Epoch on 5883 images with the conditionnal DDPM (conditionnal encoding of dimension 42) 
 
 > On cosine scheduler
+> cond : color="red", is_sprite=False
 <p align="center" style="display: flex; justify-content: center; width:95%">
-  <img src="./backend/samples/generated_samples.png" width="76%" alt="Chat demo" />
-  <img src="./backend/video_samples/diffusion_process.gif" width="19%" alt="Chat demo" />
+  <img src="./backend/samples/generated_samples_official.png" width="76%" alt="Chat demo" />
+  <img src="./backend/video_samples/diffusion_process_official.gif" width="19%" alt="Chat demo" />
+</p>
+
+> cond : color="blue", is_sprite=True
+<p align="center" style="display: flex; justify-content: center; width:95%">
+  <img src="./backend/samples/generated_samples_blue_sprite.png" width="76%" alt="Chat demo" />
+  <img src="./backend/video_samples/diffusion_process_blue_sprite.gif" width="19%" alt="Chat demo" />
 </p>
