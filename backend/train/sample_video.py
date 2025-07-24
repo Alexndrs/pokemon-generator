@@ -50,7 +50,7 @@ def cleanup_frames(frames_dir):
     
     print(f"Nettoyage terminé : {len(frame_files)} images supprimées")
 
-def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None, suffix=None):
+def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None, suffix=None, guidance_scale=2.0):
 
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     dataset = PokemonDataset(
@@ -84,9 +84,10 @@ def generate_and_visualize(model_ckpt, sample_vid_dir, cond=None, suffix=None):
         batch_size=batch_size,
         channels=3,
         cond=cond,
+        guidance_scale=guidance_scale,
         save_intermediate_steps=True,
         save_dir=sample_vid_dir,
-        save_interval=9 
+        save_interval=9
     )
     print("\nSample generation complete. Frames saved.")
 
@@ -113,7 +114,7 @@ if __name__ == "__main__":
 
     conditions = {
         "color": "blue",
-        "is_sprite": True
+        "is_sprite": True,
     }
 
 
@@ -125,4 +126,4 @@ if __name__ == "__main__":
 
     os.makedirs(sample_vid_dir, exist_ok=True)
     print("ckpt_path :", ckpt_path, "sample_vid_dir :", sample_vid_dir)
-    generate_and_visualize(ckpt_path,sample_vid_dir, cond=cond, suffix=suffix)
+    generate_and_visualize(ckpt_path,sample_vid_dir, cond=cond, suffix=suffix, guidance_scale=7.0)

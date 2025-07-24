@@ -1,8 +1,8 @@
-# A modest explaination of the DDPM [Ho et al., 2020] process
+# A modest explaination of the DDPM [1] process
 
 ## 1. Context
 
-Using the modelisation of [Ho et al., 2020] we define a noising of an initial image $x_0$ from step $0$ to step $T$ with de equation : 
+Using the modelisation of [1] we define a noising of an initial image $x_0$ from step $0$ to step $T$ with de equation : 
 $$q(x_t | x_{t-1}) := \mathcal{N}(x_{t};\sqrt{1-\beta_t} x_{t-1}, \beta_t I) $$
 where $\beta_t$ is our noise scheduler. With $\alpha_t = 1-\beta_t$ and $\bar{\alpha}_t = \prod_{i=1}^t \alpha_i$ we have directly :
 $$ q(x_t | x_0) =\mathcal{N}(x_t; \sqrt{\bar{\alpha}_t}x_0, (1-\bar{\alpha}_t)I)$$
@@ -12,7 +12,7 @@ $$p_\theta(x_{t-1}|x_t) = \mathcal{N}(x_t; \mu_\theta(x_t, t), \Sigma_\theta(x_t
 If we manage to compute $\mu_\theta$ and $\Sigma_\theta$ we will be able to go from a noisy image $x_T$ to a denoised clean image $x_0$
 
 ## 2. Estimation of $\mu_\theta$ and $\Sigma_\theta$
-To estimate $\mu_\theta$ and $\Sigma_\theta$ (i.e : to find $p_\theta(x_{t-1}|x_t)$), DDPM proposes to calculate $q(x_{t-1}|x_t, x_{0,pred})$ where $x_{0,pred}$ is an estimation of the denoised image that is obtained thanks to a machine learning model : the model usually used is a *U-NET* neural network [Ronneberger et al., 2015].
+To estimate $\mu_\theta$ and $\Sigma_\theta$ (i.e : to find $p_\theta(x_{t-1}|x_t)$), DDPM proposes to calculate $q(x_{t-1}|x_t, x_{0,pred})$ where $x_{0,pred}$ is an estimation of the denoised image that is obtained thanks to a machine learning model : the model usually used is a *U-NET* neural network [2].
 
 After some fastidious calculus using bayes and common probabilistic technics we can show that :
 
@@ -50,15 +50,8 @@ ___
 **Bibliography**
 
 
-[Ho et al., 2020] Jonathan Ho, Ajay Jain, and Pieter Abbeel.
- Denoising diffusion probabilistic models. Advances in
- neural information processing systems, 33:6840–6851,
- 2020.
+[1] Ho, J., Jain, A., & Abbeel, P. (2020). Denoising diffusion probabilistic models. Advances in neural information processing systems, 33, 6840-6851.
 
-[Ronneberger et al., 2015] Olaf Ronneberger, Philipp Fis
-cher, and Thomas Brox. U-net: Convolutional networks
- for biomedical image segmentation. In Medical image
- computing and computer-assisted intervention–MICCAI
- 2015: 18th international conference, Munich, Germany,
- October 5-9, 2015, proceedings, part III 18, pages 234
-241. Springer, 2015.
+[2] Ronneberger, O., Fischer, P., & Brox, T. (2015, October). U-net: Convolutional networks for biomedical image segmentation. In International Conference on Medical image computing and computer-assisted intervention (pp. 234-241). Cham: Springer international publishing.
+
+[3] Saharia, C., Chan, W., Saxena, S., Li, L., Whang, J., Denton, E. L., ... & Norouzi, M. (2022). Photorealistic text-to-image diffusion models with deep language understanding. Advances in neural information processing systems, 35, 36479-36494.

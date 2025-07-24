@@ -239,7 +239,7 @@ class GaussianDiffusion:
 
 
     @torch.no_grad()
-    def sample(self, batch_size, channels=3, cond=None, save_intermediate_steps=False, save_dir=None, save_interval=10):
+    def sample(self, batch_size, channels=3, cond=None,guidance_scale=2.0, save_intermediate_steps=False, save_dir=None, save_interval=10):
         '''
         Public method to generate samples.
 
@@ -247,7 +247,7 @@ class GaussianDiffusion:
             Tensor: (B, C, H, W)
         '''
         shape = (batch_size, channels, self.H, self.W)
-        return self.p_sample_loop(shape, cond=cond, save_intermediate_steps=save_intermediate_steps, save_dir=save_dir, save_interval=save_interval)
+        return self.p_sample_loop(shape, cond=cond, save_intermediate_steps=save_intermediate_steps, save_dir=save_dir, guidance_scale=guidance_scale, save_interval=save_interval)
 
 
     def loss(self, x_0, t, cond):

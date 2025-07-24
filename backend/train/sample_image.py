@@ -7,7 +7,7 @@ from backend.data.preprocessing import PokemonDataset
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4, suffix=None):
+def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4, suffix=None, guidance_scale=2.0):
     os.makedirs(output_dir, exist_ok=True)
 
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -43,7 +43,7 @@ def generate_samples(model_ckpt, output_dir="./samples", cond=None, num_images=4
 
     # === Sampling ===
     with torch.no_grad():
-        images = diffusion.sample(batch_size=num_images, cond=cond_batch)  # (B, 3, H, W)
+        images = diffusion.sample(batch_size=num_images, cond=cond_batch, guidance_scale=guidance_scale)  # (B, 3, H, W)
 
     # === Save grid ===
     grid = vutils.make_grid(images, nrow=4, normalize=True, value_range=(-1, 1))
@@ -65,11 +65,11 @@ if __name__ == "__main__":
     )
     conditions = {
         "color": "blue",
-        "is_sprite": True
+        "is_sprite": True,
     }
 
 
     cond = dataset.encode_user_request(**conditions).to(device)
     suffix = dataset.get_request_suffix(**conditions)
 
-    generate_samples(model_ckpt=ckpt_path, output_dir=sample_output_dir, cond=cond, num_images=4, suffix=suffix)
+    generate_samples(model_ckpt=ckpt_path, output_dir=sample_output_dir, cond=cond, num_images=4, suffix=suffix, guidance_scale=7.0)
