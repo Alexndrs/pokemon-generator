@@ -64,9 +64,8 @@ if __name__ == "__main__":
         use_descriptions=False,
     )
     conditions = {
-        "is_sprite": False,
-        "primary_type" : "leaf",
-        "is_legendary" : True
+        # "is_sprite": True,
+        # "color" : "blue"
     }
 
 

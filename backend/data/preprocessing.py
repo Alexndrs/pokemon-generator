@@ -20,7 +20,7 @@ class PokemonDataset(Dataset):
         use_descriptions: bool = False,
         metadata_path: Optional[str] = None,
         description_path: Optional[str] = None,
-        dropout_prob: float = 0.15,
+        dropout_prob: float = 0.05,
     ):
         self.data = pd.read_csv(csv_path)
         
@@ -91,8 +91,8 @@ class PokemonDataset(Dataset):
         drop_generation = random.random() < self.dropout_prob
         drop_sprite = random.random() < self.dropout_prob
 
-        # full dropout with a given proba (classifier free guidance is usually set at 15-20%)
-        if random.random() < 0.15:
+        # full dropout with a given proba (classifier free guidance)
+        if random.random() < 0.05:
             return self._encode_empty()
 
         # One hot encoding for primary type and color
@@ -113,6 +113,8 @@ class PokemonDataset(Dataset):
         weight = sample.get("weight", 0.0) if not drop_weight else self.mean_weight
         generation_id = sample.get("generation_id", 0) if not drop_generation else self.mean_generation
 
+        height = height / 100.0
+        weight = weight / 100.0
 
         # Binary features
         is_sprite_val = 1.0 if sample.get("is_sprite", True) else 0.0
@@ -247,6 +249,9 @@ class PokemonDataset(Dataset):
         height_val = height if height is not None else self.mean_height
         weight_val = weight if weight is not None else self.mean_weight
         gen_val = generation_id if generation_id is not None else self.mean_generation
+
+        height_val = height_val/100.0
+        weight_val = weight_val/100.0
 
         sprite_val = (1.0 if is_sprite else 0.0) if is_sprite is not None else 0.5
         legendary_val = (1.0 if is_legendary else 0.0) if is_legendary is not None else 0.5

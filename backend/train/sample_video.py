@@ -113,8 +113,8 @@ if __name__ == "__main__":
     )
 
     conditions = {
-        "color": "blue",
-        "is_sprite": True,
+        # "is_sprite": True,
+        # "color" : "blue"
     }
 
 
